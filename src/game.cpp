@@ -497,7 +497,7 @@ void GameScene::game_step() {
       player_rot_velocity -= std::pow(controller_info.joystick_axis[2], 3.0f) *
                              3 * speed_modifier * 4;
     }
-
+// I need this thing to build now so I can stop spamming commits for no reason :sob:
     if (controller_info.joystick_inputs[4] &&
         !controller_info.last_joystick_inputs[4]) {
       global_local = !global_local;
