@@ -492,7 +492,7 @@ void GameScene::game_step() {
                            5 * speed_modifier * lateral_slow_down;
     }
 
-    if (std::abs(controller_info.joystick_axis[2]) >
+    if (std::abs(controller_info.joystick_axis[2]) > // rotation
         Constants::CONTROLER_DEADBAND) {
       player_rot_velocity -= std::pow(controller_info.joystick_axis[2], 3.0f) *
                              3 * speed_modifier * 4;
