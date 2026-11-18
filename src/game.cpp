@@ -252,130 +252,130 @@ void GameScene::step() {
         }
         nk_spacer(ctx);
         nk_end(ctx);
-      }
-    } else {
-      float center_x = GetScreenWidth() / 2.0f;
-      float width_x = std::min(700, GetScreenWidth());
-      float center_y = GetScreenHeight() / 2.0f;
-      float width_y = std::min(500, GetScreenHeight());
-      ctx->style.window.fixed_background = nk_style_item_color({0, 0, 0, 50});
-      ctx->style.window.rounding = 20;
-      ctx->style.window.border = 2;
-      ctx->style.window.padding = {20, 20};
-      ctx->style.window.border_color = {255, 255, 255, 255};
+      } else {
+        float center_x = GetScreenWidth() / 2.0f;
+        float width_x = std::min(700, GetScreenWidth());
+        float center_y = GetScreenHeight() / 2.0f;
+        float width_y = std::min(500, GetScreenHeight());
+        ctx->style.window.fixed_background = nk_style_item_color({0, 0, 0, 50});
+        ctx->style.window.rounding = 20;
+        ctx->style.window.border = 2;
+        ctx->style.window.padding = {20, 20};
+        ctx->style.window.border_color = {255, 255, 255, 255};
 
-      if (nk_begin(ctx, "Score Submit",
-                   nk_rect(center_x - width_x / 2, center_y - width_y / 2,
-                           width_x, width_y),
-                   NK_WINDOW_BACKGROUND | NK_WINDOW_BORDER)) {
-        nk_layout_row_dynamic(ctx, 50, 1);
+        if (nk_begin(ctx, "Score Submit",
+                     nk_rect(center_x - width_x / 2, center_y - width_y / 2,
+                             width_x, width_y),
+                     NK_WINDOW_BACKGROUND | NK_WINDOW_BORDER)) {
+          nk_layout_row_dynamic(ctx, 50, 1);
 
-        nk_label(ctx, score_text.c_str(), NK_TEXT_CENTERED);
+          nk_label(ctx, score_text.c_str(), NK_TEXT_CENTERED);
 
-        nk_layout_row_dynamic(ctx, 25, 1);
-        nk_spacer(ctx);
+          nk_layout_row_dynamic(ctx, 25, 1);
+          nk_spacer(ctx);
 
-        nk_label(ctx, "Leaderboard Info", NK_TEXT_CENTERED);
-        nk_layout_row_dynamic(ctx, 50, 2);
+          nk_label(ctx, "Leaderboard Info", NK_TEXT_CENTERED);
+          nk_layout_row_dynamic(ctx, 50, 2);
 
-        nk_label(ctx, "User Tag", NK_TEXT_CENTERED);
-        nk_label(ctx, "Team Number", NK_TEXT_CENTERED);
-        nk_flags name_tag_event = nk_edit_string_zero_terminated_caps(
-            ctx,
-            NK_EDIT_ALWAYS_INSERT_MODE | NK_EDIT_SELECTABLE |
-                NK_EDIT_CLIPBOARD | NK_EDIT_AUTO_SELECT,
-            submit_nametag, sizeof(submit_nametag), nk_filter_ascii);
+          nk_label(ctx, "User Tag", NK_TEXT_CENTERED);
+          nk_label(ctx, "Team Number", NK_TEXT_CENTERED);
+          nk_flags name_tag_event = nk_edit_string_zero_terminated_caps(
+              ctx,
+              NK_EDIT_ALWAYS_INSERT_MODE | NK_EDIT_SELECTABLE |
+                  NK_EDIT_CLIPBOARD | NK_EDIT_AUTO_SELECT,
+              submit_nametag, sizeof(submit_nametag), nk_filter_ascii);
 
-        if (name_tag_event == NK_EDIT_ACTIVE) {
-          submit_nametag_changed = true;
-        }
-
-        nk_flags number_event = nk_edit_string_zero_terminated(
-            ctx, NK_EDIT_FIELD, submit_number, sizeof(submit_number),
-            nk_filter_decimal);
-        if (number_event == NK_EDIT_ACTIVE) {
-          submit_number_changed = true;
-        }
-
-        nk_layout_row_dynamic(ctx, 50, 1);
-        nk_label(ctx, "Optional! Not for display purposes", NK_TEXT_CENTERED);
-        nk_flags email_event = nk_edit_string_zero_terminated(
-            ctx, NK_EDIT_FIELD, submit_email, sizeof(submit_email),
-            nk_filter_ascii);
-
-        if (email_event == NK_EDIT_ACTIVE) {
-          submit_email_changed = true;
-        }
-
-        nk_layout_row_dynamic(ctx, 50, 4);
-        nk_spacer(ctx);
-
-        bool can_submit =
-            strlen(submit_nametag) == 0 || strlen(submit_number) == 0;
-        if (can_submit) {
-          nk_widget_disable_begin(ctx);
-        }
-
-        std::string score = "---";
-        std::string mode = "---";
-
-        // NOTICE: bump these version numbers if you update the game
-        if (state.gamemode == ProgramState::GAMEMODE_ARCADE_SHOVEL) {
-          score = std::format("{}", shovel_score);
-          mode = "shovel-v1";
-        } else if (state.gamemode ==
-                   ProgramState::GAMEMODE_ARCADE_TIME) { // Time Trial
-                                                         // Completion
-          score = std::format("{:.2f}", time_trials_stopwatch);
-          mode = std::format("time-trial-v1-trial-{}",
-                             (int)state.time_trial_selected);
-        }
-        state.leaderboard_name = mode;
-        if (state.leaderboard_reverse_map.contains(mode) &&
-            std::find(state.leaderboard_pretty_names.begin(),
-                      state.leaderboard_pretty_names.end(),
-                      state.leaderboard_reverse_map[mode]) !=
-                state.leaderboard_pretty_names.end()) {
-          auto distance_pretty =
-              std::distance(state.leaderboard_pretty_names.begin(),
-                            std::find(state.leaderboard_pretty_names.begin(),
-                                      state.leaderboard_pretty_names.end(),
-                                      state.leaderboard_reverse_map[mode]));
-          state.selected_leaderboard = distance_pretty;
-        }
-
-        if (nk_button_label(ctx, "Submit")) {
-          char *query = sqlite3_mprintf(
-              "REPLACE INTO leaderboard VALUES ('%q', '%q', '%q', '%q', "
-              "'%q');",
-              submit_nametag, submit_number, std::format("{}", score).c_str(),
-              mode.c_str(), submit_email);
-
-          char *err_msg;
-          if (sqlite3_exec(state.get_db(), query, NULL, NULL, &err_msg) !=
-              SQLITE_OK) {
-            std::println("{}", err_msg);
-            sqlite3_free(err_msg);
+          if (name_tag_event == NK_EDIT_ACTIVE) {
+            submit_nametag_changed = true;
           }
-          sqlite3_free(query);
 
-          // clang-format off
+          nk_flags number_event = nk_edit_string_zero_terminated(
+              ctx, NK_EDIT_FIELD, submit_number, sizeof(submit_number),
+              nk_filter_decimal);
+          if (number_event == NK_EDIT_ACTIVE) {
+            submit_number_changed = true;
+          }
+
+          nk_layout_row_dynamic(ctx, 50, 1);
+          nk_label(ctx, "Optional! Not for display purposes", NK_TEXT_CENTERED);
+          nk_flags email_event = nk_edit_string_zero_terminated(
+              ctx, NK_EDIT_FIELD, submit_email, sizeof(submit_email),
+              nk_filter_ascii);
+
+          if (email_event == NK_EDIT_ACTIVE) {
+            submit_email_changed = true;
+          }
+
+          nk_layout_row_dynamic(ctx, 50, 4);
+          nk_spacer(ctx);
+
+          bool can_submit =
+              strlen(submit_nametag) == 0 || strlen(submit_number) == 0;
+          if (can_submit) {
+            nk_widget_disable_begin(ctx);
+          }
+
+          std::string score = "---";
+          std::string mode = "---";
+
+          // NOTICE: bump these version numbers if you update the game
+          if (state.gamemode == ProgramState::GAMEMODE_ARCADE_SHOVEL) {
+            score = std::format("{}", shovel_score);
+            mode = "shovel-v1";
+          } else if (state.gamemode ==
+                     ProgramState::GAMEMODE_ARCADE_TIME) { // Time Trial
+                                                           // Completion
+            score = std::format("{:.2f}", time_trials_stopwatch);
+            mode = std::format("time-trial-v1-trial-{}",
+                               (int)state.time_trial_selected);
+          }
+          state.leaderboard_name = mode;
+          if (state.leaderboard_reverse_map.contains(mode) &&
+              std::find(state.leaderboard_pretty_names.begin(),
+                        state.leaderboard_pretty_names.end(),
+                        state.leaderboard_reverse_map[mode]) !=
+                  state.leaderboard_pretty_names.end()) {
+            auto distance_pretty =
+                std::distance(state.leaderboard_pretty_names.begin(),
+                              std::find(state.leaderboard_pretty_names.begin(),
+                                        state.leaderboard_pretty_names.end(),
+                                        state.leaderboard_reverse_map[mode]));
+            state.selected_leaderboard = distance_pretty;
+          }
+
+          if (nk_button_label(ctx, "Submit")) {
+            char *query = sqlite3_mprintf(
+                "REPLACE INTO leaderboard VALUES ('%q', '%q', '%q', '%q', "
+                "'%q');",
+                submit_nametag, submit_number, std::format("{}", score).c_str(),
+                mode.c_str(), submit_email);
+
+            char *err_msg;
+            if (sqlite3_exec(state.get_db(), query, NULL, NULL, &err_msg) !=
+                SQLITE_OK) {
+              std::println("{}", err_msg);
+              sqlite3_free(err_msg);
+            }
+            sqlite3_free(query);
+
+            // clang-format off
         EM_ASM(FS.syncfs(false, (err) => { console.log(err); }););
-          // clang-format on
+            // clang-format on
 
-          state.screen = ProgramState::SCREEN_LEADERBOARD;
-        }
+            state.screen = ProgramState::SCREEN_LEADERBOARD;
+          }
 
-        if (can_submit) {
-          nk_widget_disable_end(ctx);
-        }
+          if (can_submit) {
+            nk_widget_disable_end(ctx);
+          }
 
-        if (nk_button_label(ctx, "Skip Submission")) {
-          state.screen = ProgramState::SCREEN_LEADERBOARD;
+          if (nk_button_label(ctx, "Skip Submission")) {
+            state.screen = ProgramState::SCREEN_LEADERBOARD;
+          }
+          nk_spacer(ctx);
         }
-        nk_spacer(ctx);
+        nk_end(ctx);
       }
-      nk_end(ctx);
     }
   }
 }
@@ -478,13 +478,15 @@ void GameScene::game_step() {
       lateral_slow_down = 0.1;
     }
 
-    if (std::abs(controller_info.joystick_axis[0]) >
-        Constants::CONTROLER_DEADBAND) {
-      player_velocity.x += std::pow(controller_info.joystick_axis[0], 3.0f) *
-                           5 * speed_modifier * lateral_slow_down;
-    }
+    // Tank drive doesn't get strafing.
 
-    if (std::abs(controller_info.joystick_axis[1]) >
+    // if (std::abs(controller_info.joystick_axis[0]) > // strafe left and right
+    //     Constants::CONTROLER_DEADBAND) {
+    //   player_velocity.x += std::pow(controller_info.joystick_axis[0], 3.0f) *
+    //                        5 * speed_modifier * lateral_slow_down;
+    // }
+
+    if (std::abs(controller_info.joystick_axis[1]) > // forward and backward
         Constants::CONTROLER_DEADBAND) {
       player_velocity.z += std::pow(controller_info.joystick_axis[1], 3.0f) *
                            5 * speed_modifier * lateral_slow_down;
